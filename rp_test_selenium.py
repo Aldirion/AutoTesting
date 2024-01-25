@@ -9,7 +9,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from pandas.io.clipboard import clipboard_get
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import time
+from selenium.webdriver.support.select import Select
 
 def get_attributes(driver, element) -> dict:
     return driver.execute_script(
@@ -347,12 +347,12 @@ class TestRP(unittest.TestCase):
 		# 			break
 
 #Проверяем регистрацию в личный кабинет – Тест 10	
-	def test_registrarion(self):
+	def test_registration(self):
 		
 		url="https://www.rusprofile.ru/"
-		name="John"
-		email = "fewiyi1850@wuzak.com"
-		pwd = "t37SvI82"
+		name="Bob"
+		email = "fowoni7159@wentcity.com"
+		pwd = "6GQgd5Yb"
 		
 
 		self.driver.get(url)
@@ -381,28 +381,26 @@ class TestRP(unittest.TestCase):
 		pwd_ph.send_keys(pwd)
 		self.driver.implicitly_wait(2.5)
 
-		# checkbox=self.driver.find_element(By.CLASS_NAME,"checkbox-holder")
-		WebDriverWait(self.driver,10).until(EC.element_to_be_clickable((By.XPATH,"//*[@id='reg_agree']"))).click()
+		checkbox=self.driver.find_element(By.XPATH,"//*[@id='reg_agree']")
+		self.driver.execute_script("arguments[0].click();", checkbox)
+		self.driver.implicitly_wait(2.5)
+
+		submit_btn=self.driver.find_element(By.XPATH, "//*[@id='v-root']/div/div[1]/div[3]/div[6]/button")
+		submit_btn.click()
+		self.driver.implicitly_wait(2.5)
+
+		go_to_profile = self.driver.find_element(By.XPATH,"//*[@id='v-root']/div/div[1]/div[3]/a")
+		go_to_profile.click()
+		self.driver.implicitly_wait(2.5)
 		
-		# checkbox=self.driver.find_element(By.XPATH, "//*[@id='v-root']/div/div[1]/div[3]/div[5]")
-		# hover = ActionChains(self.driver).move_to_element(checkbox) #имитируем наведение мыши на элемент для отображения кнопки "Скопировать"
-		# hover.perform()
-		# checkbox.click()
+		auth_check=self.driver.find_element(By.ID,"menu-personal-trigger").find_element(By.CLASS_NAME, "btn-text").text
 		self.driver.implicitly_wait(2.5)
 
-		pwd_ph=self.driver.find_element(By.XPATH, "//*[@id='v-root']/div/div[1]/div[3]/div[6]/button")
-
+		#Проверяем, что создали аккаунт
+		self.assertEqual(name, auth_check)
+		logging.info(f"Произведена регистрация аккаунта: {auth_check}")
 		self.driver.implicitly_wait(2.5)
 
-
-
-		# if name_flag == 0:
-		# 	name_ph=self.driver.find_elements(By.CLASS_NAME, "form-row")
-		# 	for elem in name_ph:
-		# 		if elem.find_element(By.CLASS_NAME, "control-label-block").text == "Имя":
-		# 			name_ph = elem
-		# 			name_flag = 1
-		# 			break
 
 
 def suite():
@@ -414,9 +412,9 @@ def suite():
 	# suite.addTest(TestRP('test_egrul'))
 	# suite.addTest(TestRP('test_requisites'))
 	# suite.addTest(TestRP('test_clipboard'))
-	suite.addTest(TestRP('test_auth'))
+	# suite.addTest(TestRP('test_auth'))
 	# suite.addTest(TestRP('test_password'))
-	# suite.addTest(TestRP('test_registration'))
+	suite.addTest(TestRP('test_registration'))
 	return suite
 		
 if __name__ == '__main__':
