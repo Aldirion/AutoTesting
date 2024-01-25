@@ -5,7 +5,24 @@ import unittest
 import logging
 from selenium.webdriver.common.by import By
 from datetime import datetime
+from selenium.webdriver.common.action_chains import ActionChains
+from pandas.io.clipboard import clipboard_get
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
 
+def get_attributes(driver, element) -> dict:
+    return driver.execute_script(
+        """
+        let attr = arguments[0].attributes;
+        let items = {}; 
+        for (let i = 0; i < attr.length; i++) {
+            items[attr[i].name] = attr[i].value;
+        }
+        return items;
+        """,
+        element
+    )
 
 class TestRP(unittest.TestCase):
 	def setUp(self):
@@ -175,7 +192,7 @@ class TestRP(unittest.TestCase):
 		self.assertEqual(name.upper(), cur_name)
 		logging.info(f"Открыта страница 'Выписка из ЕГРЮЛ' для организации {cur_name}")
 
-#Проверяем получение реквизитов – Тест 6
+	#Проверяем получение реквизитов – Тест 6
 	def test_requisites(self):
 		
 		url="https://www.rusprofile.ru/id/2727870"
@@ -209,8 +226,183 @@ class TestRP(unittest.TestCase):
 		self.assertEqual(ogrn, cur_ogrn)
 		logging.info(f"Открыта страница 'Реквизиты' для организации {name}")
 
+	#Проверяем копирование реквизитов в буфер обмена – Тест 7
+	def test_clipboard(self):
+		url="https://www.rusprofile.ru/requisites/2727870"
+		name='ООО "Рога и Копыта"'
+		ogrn="1022800536440"
+
+		self.driver.get(url)
+		self.driver.implicitly_wait(1.5)
+		e_ogrn=self.driver.find_elements(By.CLASS_NAME, "requisites-item")
+		requisites=self.driver.find_elements(By.CLASS_NAME, "requisites-item")
+		for requisite in requisites:
+			if requisite.find_element(By.CLASS_NAME, "requisites-item__name").text=="ОГРН":
+				e_ogrn=requisite.find_element(By.CLASS_NAME, "requisites-item__value")
+				break
+		hover = ActionChains(self.driver).move_to_element(e_ogrn) #имитируем наведение мыши на элемент для отображения кнопки "Скопировать"
+		hover.perform()
+		ogrn_btn=e_ogrn.find_element(By.TAG_NAME, "button")
+		ogrn_btn.click()
+		self.driver.implicitly_wait(5.0)
+		cb_text=clipboard_get()
+		self.assertEqual(ogrn,cb_text)
+		logging.info(f"Скопированное значение ОГРН: {cb_text}")
+
+	#Проверяем вход в личный кабинет – Тест 8	
+	def test_auth(self):
+		
+		url="https://www.rusprofile.ru/"
+		name="John"
+		email = "fewiyi1850@wuzak.com"
+		pwd = "t37SvI82"
+
+		self.driver.get(url)
+		self.driver.implicitly_wait(500.0)
+		#--------------------------------------------
+
+		profile=WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//*[@id='menu-personal-trigger']")))
+		
+		#Выполняем шаги тест-кейса
+		profile.click()
+
+		email_ph=self.driver.find_element(By.XPATH, "//*[@id='v-root']/div/div[1]/div[3]/div[2]/div/input")
+		email_ph.send_keys(email)
+		self.driver.implicitly_wait(2.5)
+
+		pwd_ph=self.driver.find_element(By.XPATH, "//*[@id='v-root']/div/div[1]/div[3]/div[3]/div/input")
+		pwd_ph.send_keys(pwd)
+		self.driver.implicitly_wait(2.5)
+
+		sub_btn=WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//*[@id='v-root']/div/div[1]/div[3]/div[4]/button")))
+		self.driver.implicitly_wait(2.5)
+		sub_btn.click()
+		self.driver.implicitly_wait(2.5)
+
+		
+		self.driver.implicitly_wait(2.5)
+		auth_check=self.driver.find_element(By.ID,"menu-personal-trigger").find_element(By.CLASS_NAME, "btn-text").text
+		self.driver.implicitly_wait(2.5)
+
+		self.assertEqual(name, auth_check)
+		logging.info(f"Произведен вход в аккаунт: {auth_check}")
+		self.driver.implicitly_wait(2.5)
+
+#Проверяем надежность пароля в личный кабинет – Тест 9	
+	def test_password(self):
+		
+		url="https://www.rusprofile.ru/"
+		name="John"
+		email = "fewiyi1850@wuzak.com"
+		pwd1 = "t37SvI82"
+		pwd2 = "1236F"
+
+		pwd_check_ok="input-text-help has-ok"
+		
+
+		self.driver.get(url)
+		self.driver.implicitly_wait(5.0)
+		#--------------------------------------------
+
+		profile=self.driver.find_element(By.ID, "menu-personal-trigger")
+		
+		#Выполняем шаги тест-кейса 
+		profile.click()
+		self.driver.implicitly_wait(200.0)
+		reg_btn=self.driver.find_element(By.CLASS_NAME, "vModal-bottom").find_element(By.CLASS_NAME,"btn-link")
+		print(reg_btn.text)
+		reg_btn.click()
+		self.driver.implicitly_wait(2.5)
+
+		pwd_ph=self.driver.find_element(By.XPATH, "//*[@id='v-root']/div/div[1]/div[3]/div[4]/div[1]/input")
+		message=self.driver.find_element(By.CLASS_NAME, "input-text-help")
+		pwd_ph.send_keys(pwd1)
+		self.driver.implicitly_wait(2.5)
+		
+		attrs=get_attributes(self.driver, message)
+		
+		self.assertEqual(attrs.get('class'),pwd_check_ok)
+		logging.info(f"Пароль {pwd1} проходит проверку 'надежности'")
+		pwd_ph.clear()
+		pwd_ph.send_keys(pwd2)
+		self.driver.implicitly_wait(2.5)
+		attrs=get_attributes(self.driver, message)
+
+		self.assertNotEqual(attrs.get('class'),pwd_check_ok)
+		logging.info(f"Пароль {pwd2} не проходит проверку 'надежности'")
+		
+
+		self.driver.implicitly_wait(2.5)
+
+		
 
 
+
+		# if name_flag == 0:
+		# 	name_ph=self.driver.find_elements(By.CLASS_NAME, "form-row")
+		# 	for elem in name_ph:
+		# 		if elem.find_element(By.CLASS_NAME, "control-label-block").text == "Имя":
+		# 			name_ph = elem
+		# 			name_flag = 1
+		# 			break
+
+#Проверяем регистрацию в личный кабинет – Тест 10	
+	def test_registrarion(self):
+		
+		url="https://www.rusprofile.ru/"
+		name="John"
+		email = "fewiyi1850@wuzak.com"
+		pwd = "t37SvI82"
+		
+
+		self.driver.get(url)
+		self.driver.implicitly_wait(500.0)
+		#--------------------------------------------
+
+		profile=self.driver.find_element(By.ID, "menu-personal-trigger")
+		
+		#Выполняем шаги тест-кейса
+		profile.click()
+		self.driver.implicitly_wait(200.0)
+		reg_btn=self.driver.find_element(By.CLASS_NAME, "vModal-bottom").find_element(By.CLASS_NAME,"btn-link")
+		print(reg_btn.text)
+		reg_btn.click()
+		self.driver.implicitly_wait(2.5)
+
+		name_ph=self.driver.find_element(By.XPATH, "//*[@id='v-root']/div/div[1]/div[3]/div[2]/div/input")
+		name_ph.send_keys(name)
+		self.driver.implicitly_wait(2.5)
+
+		email_ph=self.driver.find_element(By.XPATH, "//*[@id='v-root']/div/div[1]/div[3]/div[3]/div/input")
+		email_ph.send_keys(email)
+		self.driver.implicitly_wait(2.5)
+
+		pwd_ph=self.driver.find_element(By.XPATH, "//*[@id='v-root']/div/div[1]/div[3]/div[4]/div[1]/input")
+		pwd_ph.send_keys(pwd)
+		self.driver.implicitly_wait(2.5)
+
+		# checkbox=self.driver.find_element(By.CLASS_NAME,"checkbox-holder")
+		WebDriverWait(self.driver,10).until(EC.element_to_be_clickable((By.XPATH,"//*[@id='reg_agree']"))).click()
+		
+		# checkbox=self.driver.find_element(By.XPATH, "//*[@id='v-root']/div/div[1]/div[3]/div[5]")
+		# hover = ActionChains(self.driver).move_to_element(checkbox) #имитируем наведение мыши на элемент для отображения кнопки "Скопировать"
+		# hover.perform()
+		# checkbox.click()
+		self.driver.implicitly_wait(2.5)
+
+		pwd_ph=self.driver.find_element(By.XPATH, "//*[@id='v-root']/div/div[1]/div[3]/div[6]/button")
+
+		self.driver.implicitly_wait(2.5)
+
+
+
+		# if name_flag == 0:
+		# 	name_ph=self.driver.find_elements(By.CLASS_NAME, "form-row")
+		# 	for elem in name_ph:
+		# 		if elem.find_element(By.CLASS_NAME, "control-label-block").text == "Имя":
+		# 			name_ph = elem
+		# 			name_flag = 1
+		# 			break
 
 
 def suite():
@@ -220,7 +412,11 @@ def suite():
 	# suite.addTest(TestRP('test_search_by_name'))
 	# suite.addTest(TestRP('test_organization_card'))
 	# suite.addTest(TestRP('test_egrul'))
-	suite.addTest(TestRP('test_requisites'))
+	# suite.addTest(TestRP('test_requisites'))
+	# suite.addTest(TestRP('test_clipboard'))
+	suite.addTest(TestRP('test_auth'))
+	# suite.addTest(TestRP('test_password'))
+	# suite.addTest(TestRP('test_registration'))
 	return suite
 		
 if __name__ == '__main__':
