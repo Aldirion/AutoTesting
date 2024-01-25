@@ -1,33 +1,100 @@
 # -*- coding: utf-8 -*-
 
 from selenium import webdriver
+import unittest
 import logging
 from selenium.webdriver.common.by import By
 from datetime import datetime
 
-#Проверяем доступность web-приложения
-def test_driver_connection(url):
-	driver = webdriver.Chrome()
 
-	driver.get(url)
+class TestRP(unittest.TestCase):
+	def setUp(self):
+		logging.basicConfig(level=logging.INFO, filename="LOG.log",filemode="a",format="%(asctime)s %(levelname)s %(message)s")
+		dt=datetime.now()
+		logging.warning(f"Start log:{dt}")
+		self.driver = webdriver.Chrome()
+		self.addCleanup(self.driver.quit)
 
-	title = driver.title
-	description=driver.find_element(By.XPATH,"//meta[@name='description']").get_attribute("content")
+	#Проверяем доступность web-приложения
+	def test_driver_connection(self):
+		
+		url="https://www.rusprofile.ru/"
+		self.driver.get(url)
 
-	driver.implicitly_wait(0.5)
+		title = self.driver.title
+		description=self.driver.find_element(By.XPATH,"//meta[@name='description']").get_attribute("content")
+		cur_url=self.driver.find_element(By.XPATH,"//meta[@property='og:url']").get_attribute("content")
+		self.assertEqual(url,cur_url)
+		self.driver.implicitly_wait(0.5)
+		logging.warning("Переход на сайт выполнен успешно")
+		logging.info(f"Title: {title}")
+		logging.info(f"Description: {description}")
+		self.driver.implicitly_wait(5.0)
 
-	# print(title)
-	# print(description)
-	logging.info(f"Title: {title}")
-	logging.info(f"Description: {description}")
+	#Проверяем работоспособность поиска организации по ИНН
+	def test_search_by_inn(self):
+		
+		url=url="https://www.rusprofile.ru/"
+		inn="2801068082"
 
-	driver.quit()
+		self.driver.get(url)
+		self.driver.implicitly_wait(0.5)
+		#--------------------------------------------
 
-def main():
-	logging.basicConfig(level=logging.INFO, filename="LOG.log",filemode="w",format="%(asctime)s %(levelname)s %(message)s")
-	dt=datetime.now()
-	logging.warning(f"Start log:{dt}")
-	turl="https://rusprofile.ru"
-	test_driver_connection(turl)
+		#Находим элементы (поисковая строка и кнопка "Найти")
+		search_box=self.driver.find_element(By.CLASS_NAME,"index-search-input")
+		search_submit=self.driver.find_element(By.CSS_SELECTOR, ".search-btn")
 
-main()
+		#Выполняем шаги тест-кейса
+		search_box.send_keys(inn)
+		self.driver.implicitly_wait(2.5)
+		search_submit.click()
+
+		target_inn=self.driver.find_element(By.ID,"clip_inn").text
+
+		#Проверяем совпадает ли искомый ИНН с ИНН в открытой карточке организации
+		logging.info(f"Искомый ИНН: {inn}")
+		logging.warning(f"Открытый ИНН: {target_inn}")
+		self.assertEqual(inn,target_inn)
+		logging.info(f"Тест успешен. Искомый ИНН ({inn}) совпадает с ИНН в открытой карточке ({target_inn})")
+
+		#Проверяем работоспособность поиска организации по ИНН
+	
+	#Проверяем работоспособность поиска организации по ОГРН
+	def test_search_by_ogrn(self):
+		
+		url=url="https://www.rusprofile.ru/"
+		ogrn="1022800536440"
+
+		self.driver.get(url)
+		self.driver.implicitly_wait(1.5)
+		#--------------------------------------------
+
+		#Находим элементы (поисковая строка и кнопка "Найти")
+		search_box=self.driver.find_element(By.CLASS_NAME,"index-search-input")
+		search_submit=self.driver.find_element(By.CSS_SELECTOR, ".search-btn")
+
+		#Выполняем шаги тест-кейса
+		search_box.send_keys(ogrn)
+		self.driver.implicitly_wait(2.5)
+		search_submit.click()
+
+		target_ogrn=self.driver.find_element(By.ID,"clip_ogrn").text
+
+		#Проверяем совпадает ли искомый ИНН с ИНН в открытой карточке организации
+		logging.info(f"Искомый ОГРН: {ogrn}")
+		logging.warning(f"Открытый ОГРН: {target_ogrn}")
+		self.assertEqual(ogrn,target_ogrn)
+		logging.info(f"Тест успешен. Искомый ОГРН ({ogrn}) совпадает с ОГРН в открытой карточке ({target_ogrn})")
+
+
+def suite():
+	suite=unittest.TestSuite()
+	suite.addTest(TestRP('test_search_by_inn'))
+	suite.addTest(TestRP('test_search_by_ogrn'))
+	return suite
+		
+if __name__ == '__main__':
+	# unittest.main()
+	runner = unittest.TextTestRunner()
+	runner.run(suite())
