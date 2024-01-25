@@ -175,6 +175,39 @@ class TestRP(unittest.TestCase):
 		self.assertEqual(name.upper(), cur_name)
 		logging.info(f"Открыта страница 'Выписка из ЕГРЮЛ' для организации {cur_name}")
 
+#Проверяем получение реквизитов – Тест 6
+	def test_requisites(self):
+		
+		url="https://www.rusprofile.ru/id/2727870"
+		name='ООО "Рога и Копыта"'
+		ogrn="1022800536440"
+
+		self.driver.get(url)
+		self.driver.implicitly_wait(1.5)
+
+		#Проверяем, что попали на страницу компании
+		company_page=self.driver.find_element(By.CLASS_NAME,"company-header")
+		self.assertIsNotNone(company_page, "Не страница компании")
+		self.driver.implicitly_wait(1.5)
+
+		#Ищем нужный пункт меню
+		more_btn = self.driver.find_element(By.CLASS_NAME, "company-menu_more")
+		self.driver.implicitly_wait(1.5)
+		more_btn.click()
+		menus=self.driver.find_elements(By.CLASS_NAME,"flexpoint")		
+		for m in menus:
+			if m.text == "Реквизиты":
+					egrul_btn=m
+					egrul_btn.click()
+					break
+		self.driver.implicitly_wait(5.0)
+
+		#Проверяем, что открыли страницу для получения выписки из ЕГРЮЛ для конкретной организации
+		requisites_page = self.driver.find_element(By.CSS_SELECTOR,".content-frame__title").text
+		self.assertEqual(requisites_page,"Реквизиты", "Не страница выписки из ЕГРЮЛ")
+		cur_ogrn = self.driver.find_element(By.ID,"clip_ogrn").text
+		self.assertEqual(ogrn, cur_ogrn)
+		logging.info(f"Открыта страница 'Реквизиты' для организации {name}")
 
 
 
@@ -186,7 +219,8 @@ def suite():
 	# suite.addTest(TestRP('test_search_by_ogrn'))
 	# suite.addTest(TestRP('test_search_by_name'))
 	# suite.addTest(TestRP('test_organization_card'))
-	suite.addTest(TestRP('test_egrul'))
+	# suite.addTest(TestRP('test_egrul'))
+	suite.addTest(TestRP('test_requisites'))
 	return suite
 		
 if __name__ == '__main__':
