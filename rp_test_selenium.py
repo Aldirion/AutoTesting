@@ -31,7 +31,7 @@ class TestRP(unittest.TestCase):
 		logging.info(f"Description: {description}")
 		self.driver.implicitly_wait(5.0)
 
-	#Проверяем работоспособность поиска организации по ИНН
+	#Проверяем работоспособность поиска организации по ИНН – Тест 1
 	def test_search_by_inn(self):
 		
 		url=url="https://www.rusprofile.ru/"
@@ -60,7 +60,7 @@ class TestRP(unittest.TestCase):
 
 		#Проверяем работоспособность поиска организации по ИНН
 	
-	#Проверяем работоспособность поиска организации по ОГРН
+	#Проверяем работоспособность поиска организации по ОГРН – Тест 2
 	def test_search_by_ogrn(self):
 		
 		url=url="https://www.rusprofile.ru/"
@@ -87,7 +87,7 @@ class TestRP(unittest.TestCase):
 		self.assertEqual(ogrn,target_ogrn)
 		logging.info(f"Тест успешен. Искомый ОГРН ({ogrn}) совпадает с ОГРН в открытой карточке ({target_ogrn})")
 
-	#Проверяем работоспособность поиска организации по ОГРН
+	#Проверяем работоспособность поиска организации по названию – Тест 3
 	def test_search_by_name(self):
 		
 		url=url="https://www.rusprofile.ru/"
@@ -129,6 +129,51 @@ class TestRP(unittest.TestCase):
 		logging.warning(f"Искомая строка: {name}")
 		logging.warning(f"Полученная из поисковой выдачи строка: {sres}")
 
+	#Проверяем карточку организации – Тест 4
+	def test_organization_card(self):
+		
+		url="https://www.rusprofile.ru/id/2727870"
+
+		self.driver.get(url)
+		self.driver.implicitly_wait(1.5)
+
+		#Проверяем, что попали на страницу поиска
+		company_page=self.driver.find_element(By.CLASS_NAME,"company-header")
+		self.assertIsNotNone(company_page, "Не страница компании")
+		logging.info("Открыта страница компании")
+
+	#Проверяем получение выписки из ЕГРЮЛ – Тест 5
+	def test_egrul(self):
+		
+		url="https://www.rusprofile.ru/id/2727870"
+		name='ООО "Рога и Копыта"'
+
+		self.driver.get(url)
+		self.driver.implicitly_wait(1.5)
+
+		#Проверяем, что попали на страницу компании
+		company_page=self.driver.find_element(By.CLASS_NAME,"company-header")
+		self.assertIsNotNone(company_page, "Не страница компании")
+		self.driver.implicitly_wait(1.5)
+
+		#Ищем нужный пункт меню
+		more_btn = self.driver.find_element(By.CLASS_NAME, "company-menu_more")
+		self.driver.implicitly_wait(1.5)
+		more_btn.click()
+		menus=self.driver.find_elements(By.CLASS_NAME,"flexpoint")		
+		for m in menus:
+			if m.text == "Выписка из ЕГРЮЛ":
+					egrul_btn=m
+					egrul_btn.click()
+					break
+		self.driver.implicitly_wait(5.0)
+
+		#Проверяем, что открыли страницу для получения выписки из ЕГРЮЛ для конкретной организации
+		egrul_page = self.driver.find_element(By.CLASS_NAME,"page-egrul-egrip")
+		self.assertIsNotNone(egrul_page, "Не страница выписки из ЕГРЮЛ")
+		cur_name = self.driver.find_element(By.CLASS_NAME,"statement-name").text
+		self.assertEqual(name.upper(), cur_name)
+		logging.info(f"Открыта страница 'Выписка из ЕГРЮЛ' для организации {cur_name}")
 
 
 
@@ -139,7 +184,9 @@ def suite():
 	suite=unittest.TestSuite()
 	# suite.addTest(TestRP('test_search_by_inn'))
 	# suite.addTest(TestRP('test_search_by_ogrn'))
-	suite.addTest(TestRP('test_search_by_name'))
+	# suite.addTest(TestRP('test_search_by_name'))
+	# suite.addTest(TestRP('test_organization_card'))
+	suite.addTest(TestRP('test_egrul'))
 	return suite
 		
 if __name__ == '__main__':
