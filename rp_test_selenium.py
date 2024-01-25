@@ -87,11 +87,59 @@ class TestRP(unittest.TestCase):
 		self.assertEqual(ogrn,target_ogrn)
 		logging.info(f"Тест успешен. Искомый ОГРН ({ogrn}) совпадает с ОГРН в открытой карточке ({target_ogrn})")
 
+	#Проверяем работоспособность поиска организации по ОГРН
+	def test_search_by_name(self):
+		
+		url=url="https://www.rusprofile.ru/"
+		name='ООО "Рога и Копыта"'
+		c=name.count(" ")+1
+
+		self.driver.get(url)
+		self.driver.implicitly_wait(1.5)
+		#--------------------------------------------
+
+		#Находим элементы (поисковая строка и кнопка "Найти")
+		search_box=self.driver.find_element(By.CLASS_NAME,"index-search-input")
+		search_submit=self.driver.find_element(By.CSS_SELECTOR, ".search-btn")
+
+		#Выполняем шаги тест-кейса
+		search_box.send_keys(name)
+		self.driver.implicitly_wait(2.5)
+		search_submit.click()
+
+		self.driver.implicitly_wait(5.0)
+
+		#Проверяем, что попали на страницу поиска
+		search_page=self.driver.find_element(By.CLASS_NAME,"search-result-page")
+		self.assertIsNotNone(search_page, "Не страница поиска")
+		logging.info("Открыта страница поиска")
+
+		#Проверяем, что выдача соответствует запросу
+		search_result_elems=self.driver.find_elements(By.CLASS_NAME,"finded-text")
+		sres=" "
+		print(len(search_result_elems))
+		self.driver.implicitly_wait(5.0)
+		for e in range(0,c):
+			sres += search_result_elems[e].text + " "
+			# sres.join(search_result_elems[e].text)
+		
+		self.driver.implicitly_wait(5.0)
+		self.assertRegex(sres,name)
+
+		logging.warning(f"Искомая строка: {name}")
+		logging.warning(f"Полученная из поисковой выдачи строка: {sres}")
+
+
+
+
+
+
 
 def suite():
 	suite=unittest.TestSuite()
-	suite.addTest(TestRP('test_search_by_inn'))
-	suite.addTest(TestRP('test_search_by_ogrn'))
+	# suite.addTest(TestRP('test_search_by_inn'))
+	# suite.addTest(TestRP('test_search_by_ogrn'))
+	suite.addTest(TestRP('test_search_by_name'))
 	return suite
 		
 if __name__ == '__main__':
