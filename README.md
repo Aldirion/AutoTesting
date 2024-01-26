@@ -323,5 +323,5 @@
 	</tr>
 </table>
 <h1>Вывод тестов:</h1>
+<img width="1061" alt="image" src="https://github.com/Aldirion/AutoTesting/assets/33082369/94591dfe-48fc-4ccd-8010-9574e9b41f5f">
 
-![Imgur](https://i.imgur.com/fvHSxxC.jpg)
