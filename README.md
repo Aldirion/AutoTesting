@@ -322,3 +322,6 @@
 		</ol></td>
 	</tr>
 </table>
+<h1>Вывод тестов:</h1>
+
+![Imgur](https://i.imgur.com/fvHSxxC.jpg)
